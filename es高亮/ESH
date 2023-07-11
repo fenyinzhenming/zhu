@@ -1,0 +1,88 @@
+    @Autowired
+    private ElasticsearchTemplate elasticsearchTemplate;
+
+    @Test
+    public void ikSearch() {
+        String searchField = "courseName";
+                // 构造查询条件,使用标准分词器.
+//        QueryBuilder matchQuery = QueryBuilders.boolQuery()
+//                .must(QueryBuilders.multiMatchQuery("Vue.js", searchField).analyzer("ik_max_word")
+//                        .operator(Operator.OR));
+        // 构造查询条件,使用标准分词器.
+        BoolQueryBuilder matchQuery = QueryBuilders.boolQuery()
+                .should(QueryBuilders.multiMatchQuery("Vue.js", searchField,"brief").analyzer("ik_max_word")
+                        .operator(Operator.OR))
+                .should(QueryBuilders.multiMatchQuery("应用场景", "brief").analyzer("ik_max_word")
+                        .operator(Operator.OR));
+        matchQuery.should(QueryBuilders.rangeQuery("discounts").gte(100).lte(200));
+        int pageNo = 1;
+        int pageSize = 10;
+
+        // 设置高亮,使用默认的highlighter高亮器
+        HighlightBuilder highlightBuilder = createHighlightBuilder(searchField,"brief");
+
+        // 设置查询字段
+        SearchResponse response = elasticsearchTemplate.getClient().prepareSearch("course")
+                .setQuery(matchQuery)
+                .highlighter(highlightBuilder)
+                .setFrom((pageNo - 1) * pageSize)
+                // 设置一次返回的文档数量，最大值：10000
+                .setSize(pageNo * pageSize)
+                .get();
+
+        // 返回搜索结果
+        SearchHits hits = response.getHits();
+
+        List<CourseDto> hitList = getHitList(hits);
+
+        System.out.println(hits.getTotalHits());
+        hitList.forEach(address -> {
+            System.out.println(JSONUtil.toJsonStr(address));
+        });
+    }
+
+    /**
+     * 构造高亮器
+     */
+    private HighlightBuilder createHighlightBuilder(String... fieldNames) {
+        System.out.println(fieldNames.length);
+        // 设置高亮,使用默认的highlighter高亮器
+        HighlightBuilder highlightBuilder = new HighlightBuilder()
+                // .field("productName")
+                .preTags("<span style='color:red'>")
+                .postTags("</span>");
+
+        // 设置高亮字段
+        for (String fieldName : fieldNames) {
+            System.out.println(fieldName);
+            highlightBuilder.field(fieldName);
+        }
+
+        return highlightBuilder;
+    }
+
+
+    /**
+     * 处理高亮结果
+     */
+    private List<CourseDto> getHitList(SearchHits hits) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        Map<String, Object> map;
+        for (SearchHit searchHit : hits) {
+            // 处理源数据
+            map = new HashMap<>(searchHit.getSourceAsMap());
+            // 处理高亮数据
+            Map<String, Object> hitMap = new HashMap<>();
+            searchHit.getHighlightFields().forEach((k, v) -> {
+                StringBuilder high = new StringBuilder();
+                for (Text text : v.getFragments()) {
+                    high.append(text.string());
+                }
+                hitMap.put(v.getName(), high.toString());
+            });
+            map.putAll(hitMap);
+            list.add(map);
+        }
+        return JSON.parseArray(JSON.toJSONString(list), CourseDto.class);
+    }
+

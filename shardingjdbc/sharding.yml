@@ -1,0 +1,35 @@
+spring:
+  http:
+    encoding:
+      enabled: true
+      charset: utf-8
+      force: true
+  shardingsphere:
+    datasource:
+      names: m1
+      m1:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/edu_order?useUnicode=true&useSSL=false&serverTimezone=UTC
+        username: "root"
+        password: "root"
+    sharding:
+      tables:
+        user_course_order:
+          actualDataNodes: m1.user_course_order_$->{0..9}
+          tableStrategy:
+            inline:
+              shardingColumn: id
+              algorithmExpression: user_course_order_$->{id % 10}
+          keyGenerator:
+            type: SNOWFLAKE
+            column: id
+    props:
+      sql:
+        show: true
+logging:
+  level:
+    root: info
+    org.springframework.web: info
+    com.bigdata.dbsharding: debug
+    druid.sql: debug

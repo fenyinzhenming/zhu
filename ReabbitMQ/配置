@@ -1,0 +1,16 @@
+//导包
+<dependency>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
+//配置
+spring:
+ # 配置虚拟主机
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: test
+    password: test
+    virtual-host: test
+//根据需求选择
+https://blog.csdn.net/qq_66068983/article/details/127864874

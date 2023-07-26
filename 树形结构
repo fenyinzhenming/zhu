@@ -1,1 +1,234 @@
-
+//泛型定义
+import java.util.ArrayList;
+import java.util.List;
+ 
+public class ParentTreeNode<T> {
+    //节点id
+    private String id;
+    //节点名称
+    private String name;
+    //父节点id
+    private String parentId;
+    //排序值
+    private int order;
+    //是否是终节点 1/是；0/否
+    private int type;
+    //子节点列表
+    private List<T> sonList=new ArrayList<>();
+ 
+    public String getId() {
+        return id;
+    }
+ 
+    public void setId(String id) {
+        this.id = id;
+    }
+ 
+    public String getName() {
+        return name;
+    }
+ 
+    public void setName(String name) {
+        this.name = name;
+    }
+ 
+    public String getParentId() {
+        return parentId;
+    }
+ 
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
+    }
+ 
+ 
+    public int getType() {
+        return type;
+    }
+ 
+    public void setType(int type) {
+        this.type = type;
+    }
+ 
+    public List<T> getSonList() {
+        return sonList;
+    }
+ 
+    public void setSonList(List<T> sonList) {
+        this.sonList = sonList;
+    }
+ 
+    public int getOrder() {
+        return order;
+    }
+ 
+    public void setOrder(int order) {
+        this.order = order;
+    }
+}
+//生成树状图
+import org.apache.commons.lang3.StringUtils;
+ 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+ 
+public class TreeBuilder<T extends ParentTreeNode<T>> {
+    /**
+     * 递归树
+     * @param nodeList
+     * @return
+     */
+    public List<T> buildTree(List<T> nodeList){
+        List<T> parentList= nodeList.stream().filter(a -> StringUtils.isEmpty(a.getParentId())).sorted(Comparator.comparing(T::getOrder)).collect(Collectors.toList());
+        for (T parentNode : parentList) {
+            parentNode.setSonList(getChild(parentNode.getId(), nodeList));
+        }
+        return parentList;
+    }
+ 
+    /**
+     *
+     * @param rootNodeId 根节点id
+     * @param nodeList  全部菜单项
+     * @return
+     * 获取一个根节点菜单的树结构
+     */
+    public List<T> getChild(String rootNodeId, List<T> nodeList) {
+        // 子菜单
+        List<T> childList = new ArrayList<>();
+        for (T node : nodeList) {
+            // 遍历所有节点，将父菜单id与传过来的id比较
+            if (StringUtils.isNotBlank(node.getParentId())) {
+                if (node.getParentId().equals(rootNodeId)) {
+                    childList.add(node);
+                }
+            }
+        }
+        // 把子菜单的子菜单再循环一遍
+        for (T node : childList) {
+            //type是0的是非终节点
+            if (node.getType()==0) {
+                // 递归
+                node.setSonList(getChild(node.getId(), nodeList));
+            }
+            //排序
+            if (null!=node&&null!=node.getSonList()){
+                List<T> sortSonNodeList=node.getSonList().stream().sorted(Comparator.comparing(T::getOrder)).collect(Collectors.toList());
+                node.setSonList(sortSonNodeList);
+            }
+        } // 递归退出条件
+        if (childList.size() == 0) {
+            return null;
+        }
+        //再次排序
+        List<T> sortSonNodeList=childList.stream().sorted(Comparator.comparing(T::getOrder)).collect(Collectors.toList());
+        return sortSonNodeList;
+    }
+}
+//测试实体类
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+ 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Menu extends ParentTreeNode<Menu>{
+    private String url;
+    private String color;
+}
+//测试类
+public class Test {
+    public static void main(String[] args) {
+        TreeBuilder treeBuilder=new TreeBuilder();
+        List<Menu> menus = buildMenu();
+        List<Menu> list = treeBuilder.buildTree(menus);
+        String s = JSON.toJSONString(list);
+        System.out.println(s);
+    }
+ 
+    public static List<Menu> buildMenu(){
+        List<Menu> list=new ArrayList<>();
+        Menu menu_=new Menu("/101","2#882");
+        menu_.setId("101");
+        menu_.setName("公司管理系统");
+        menu_.setParentId(null);
+        menu_.setOrder(1);
+        menu_.setType(0);
+        list.add(menu_);
+ 
+ 
+        Menu menu_k=new Menu("/102","2#882");
+        menu_k.setId("102");
+        menu_k.setName("公司管理系统");
+        menu_k.setParentId(null);
+        menu_k.setOrder(2);
+        menu_k.setType(0);
+        list.add(menu_k);
+ 
+        Menu menu_1=new Menu("/1001","2#882");
+        menu_1.setId("1001");
+        menu_1.setName("财务管理");
+        menu_1.setParentId("101");
+        menu_1.setOrder(1);
+        menu_1.setType(0);
+        list.add(menu_1);
+        Menu menu_2=new Menu("/1002","2#882");
+        menu_2.setId("1002");
+        menu_2.setName("人员管理");
+        menu_2.setParentId("101");
+        menu_2.setOrder(2);
+        menu_2.setType(0);
+        list.add(menu_2);
+        Menu menu_3=new Menu("/1003","2#882");
+        menu_3.setId("1003");
+        menu_3.setName("业务管理");
+        menu_3.setParentId("101");
+        menu_3.setOrder(3);
+        menu_3.setType(0);
+        list.add(menu_3);
+ 
+        Menu menu_11=new Menu("/1001-01","2#882");
+        menu_11.setId("1001-01");
+        menu_11.setName("公司门户管理");
+        menu_11.setParentId("1001");
+        menu_11.setOrder(1);
+        menu_11.setType(1);
+        list.add(menu_11);
+        Menu menu_12=new Menu("/1001-02","2#882");
+        menu_12.setId("1001-02");
+        menu_12.setName("子公司管理");
+        menu_12.setParentId("1001");
+        menu_12.setOrder(2);
+        menu_12.setType(1);
+        list.add(menu_12);
+ 
+        Menu menu_21=new Menu("/1002-01","2#882");
+        menu_21.setId("1002-01");
+        menu_21.setName("人员绩效");
+        menu_21.setParentId("1002");
+        menu_21.setOrder(1);
+        menu_21.setType(1);
+        list.add(menu_21);
+        Menu menu_22=new Menu("/1002-02","2#882");
+        menu_22.setId("1002-02");
+        menu_22.setName("公司管理");
+        menu_22.setParentId("1002");
+        menu_22.setOrder(2);
+        menu_22.setType(1);
+        list.add(menu_22);
+ 
+        Menu menu_31=new Menu("/1003-01","2#882");
+        menu_31.setId("1003-01");
+        menu_31.setName("运输业务");
+        menu_31.setParentId("1003");
+        menu_31.setOrder(1);
+        menu_31.setType(1);
+        list.add(menu_31);
+ 
+        return list;
+ 
+    }
+ 
+}
